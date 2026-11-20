@@ -93,8 +93,6 @@ public final class VntApi {
         } catch (Exception error) { throw wrap("读取路由表", error); }
     }
 
-    public boolean isDirect(String ip) { return nativeIsDirect(handle, ip); }
-
     private static VntException wrap(String action, Exception error) {
         return error instanceof VntException ? (VntException) error : new VntException(action + "失败", error);
     }
@@ -104,9 +102,6 @@ public final class VntApi {
     private static native String nativeGetNatInfo(long handle);
     private static native String nativeGetServerList(long handle);
     private static native String nativeGetRouteTable(long handle);
-    private static native boolean nativeIsDirect(long handle, String ip);
-    private static native String nativeGetPacketLoss(long handle, String ip);
-    private static native String nativeGetTrafficInfo(long handle, String ip);
 
     public record NetworkInfo(String ip, int prefixLen, String gateway, String broadcast) {}
     public record NatInfo(String type, List<String> publicIps, String ipv6) {}
@@ -115,7 +110,13 @@ public final class VntApi {
     public record Traffic(long txBytes, long rxBytes, long txBytesPerSecond, long rxBytesPerSecond) {}
     public record ClientInfo(String ip, String name, String version, String clientType, boolean online, boolean direct,
                              String routeProtocol, Integer routeMetric, Integer rtt, int keyEqual,
-                             PacketLoss loss, Traffic traffic) {}
+                             PacketLoss loss, Traffic traffic) {
+        /** 仅替换流量字段，其余保持不变。1.x 只能拿到本机总量，需要逐节点写回。 */
+        public ClientInfo withTraffic(Traffic nextTraffic) {
+            return new ClientInfo(ip, name, version, clientType, online, direct,
+                    routeProtocol, routeMetric, rtt, keyEqual, loss, nextTraffic);
+        }
+    }
     public record RouteDetail(String key, String protocol, int metric, int rtt) {}
     public record RouteInfo(String ip, List<RouteDetail> routes) {}
 }

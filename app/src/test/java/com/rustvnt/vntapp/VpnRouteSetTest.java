@@ -8,14 +8,22 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class VpnRouteSetTest {
-    @Test public void normalizesAndDeduplicatesAllRouteSources() {
+    @Test public void buildsRoutesFromSelfInAndOut() {
+        List<VpnRouteSet.Route> routes = VpnRouteSet.build(
+                "10.26.0.8", 24,
+                List.of("192.168.2.0/24,10.26.0.2", "172.16.0.0/16,10.26.0.3"),
+                List.of("192.168.1.0/24"));
+        assertEquals(
+                List.of("10.26.0.0/24", "192.168.2.0/24", "172.16.0.0/16", "192.168.1.0/24"),
+                routes.stream().map(VpnRouteSet.Route::cidr).collect(Collectors.toList()));
+    }
+
+    @Test public void deduplicatesIdenticalCidrs() {
         List<VpnRouteSet.Route> routes = VpnRouteSet.build(
                 "10.26.0.8", 24,
                 List.of("192.168.1.42/24"),
-                List.of("172.16.0.0/16,10.26.0.2"),
-                List.of("192.168.1.0/24,10.26.0.3", "172.16.0.0/16,10.26.0.2"));
-        assertEquals(
-                List.of("10.26.0.0/24", "192.168.1.0/24", "172.16.0.0/16"),
+                List.of("192.168.1.0/24"));
+        assertEquals(List.of("10.26.0.0/24", "192.168.1.0/24"),
                 routes.stream().map(VpnRouteSet.Route::cidr).collect(Collectors.toList()));
     }
 

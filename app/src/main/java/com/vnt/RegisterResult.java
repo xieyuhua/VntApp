@@ -16,6 +16,8 @@ public final class RegisterResult {
     }
 
     static RegisterResult fromJson(String json) throws VntException {
+        // 原生层返回 null 表示 panic 或内部错误，给出明确提示而不是 NPE。
+        if (json == null) throw new VntException("原生核心未返回注册结果（可能已崩溃，请查看运行日志）");
         try {
             JSONObject object = new JSONObject(json);
             if (!object.getBoolean("success")) {

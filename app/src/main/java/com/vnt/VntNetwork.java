@@ -1,10 +1,20 @@
 package com.vnt;
 
+/**
+ * VNT 1.x 网络实例。
+ *
+ * <p>1.x 的 TUN 由核心在注册成功后回调 {@link TunHost#generateTunFd} 索取，
+ * 因此这里没有 startTun 之类的入口。
+ */
 public final class VntNetwork {
-    public interface IpUpdateListener {
-        void onIpUpdate(long requestId, String ip, int prefixLen);
-
-        default void onSubnetRoutesChanged(String routesJson) { }
+    /**
+     * Rust 核心回调 Java 建立 Android VPN。
+     *
+     * <p>核心线程调用，实现方必须同步返回：-1 表示建立失败，核心会触发 error 回调。
+     */
+    public interface TunHost {
+        /** @return TUN 文件描述符，失败返回 -1 */
+        int generateTunFd(String virtualIp, String netmask, String gateway);
     }
 
     private final long nativeHandle;
@@ -17,49 +27,12 @@ public final class VntNetwork {
         return RegisterResult.fromJson(nativeRegister(nativeHandle));
     }
 
-    public synchronized void startTun(int fd) throws VntException {
-        checkOpen();
-        if (!nativeStartTun(nativeHandle, fd)) throw new VntException("Rust 核心无法启动 TUN");
-    }
-
-    public synchronized void prepareIpUpdate(long requestId, String ip) throws VntException {
-        checkOpen();
-        if (!nativePrepareIpUpdate(nativeHandle, requestId, ip)) {
-            throw new VntException("Rust 核心无法暂停旧 TUN");
-        }
-    }
-
-    /** Native always takes ownership of a non-negative fd, including failure paths. */
-    public synchronized void completeIpUpdate(long requestId, String ip, int fd) throws VntException {
-        checkOpen();
-        if (!nativeCompleteIpUpdate(nativeHandle, requestId, ip, fd)) {
-            throw new VntException("Rust 核心无法启动新 TUN");
-        }
-    }
-
-    public synchronized void prepareRouteUpdate() throws VntException {
-        checkOpen();
-        if (!nativePrepareRouteUpdate(nativeHandle)) {
-            throw new VntException("Rust 核心无法暂停旧 TUN");
-        }
-    }
-
-    /** Native always takes ownership of the fd, including failure paths. */
-    public synchronized void completeRouteUpdate(int fd) throws VntException {
-        checkOpen();
-        if (!nativeCompleteRouteUpdate(nativeHandle, fd)) {
-            throw new VntException("Rust 核心无法应用新的 VPN 路由");
-        }
-    }
-
     public synchronized VntApi getApi() throws VntException {
         checkOpen();
         long apiHandle = nativeGetApi(nativeHandle);
         if (apiHandle < 0) throw new VntException("无法获取 VNT 状态接口");
         return new VntApi(apiHandle);
     }
-
-    public synchronized boolean isNoTun() { checkOpen(); return nativeIsNoTun(nativeHandle); }
 
     public synchronized void stop() {
         if (!closed) {
@@ -73,12 +46,6 @@ public final class VntNetwork {
     }
 
     private static native String nativeRegister(long handle);
-    private static native boolean nativeStartTun(long handle, int tunFd);
-    private static native boolean nativePrepareIpUpdate(long handle, long requestId, String ip);
-    private static native boolean nativeCompleteIpUpdate(long handle, long requestId, String ip, int tunFd);
-    private static native boolean nativePrepareRouteUpdate(long handle);
-    private static native boolean nativeCompleteRouteUpdate(long handle, int tunFd);
     private static native long nativeGetApi(long handle);
-    private static native boolean nativeIsNoTun(long handle);
     private static native boolean nativeStop(long handle);
 }

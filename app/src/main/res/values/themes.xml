@@ -8,10 +8,18 @@
         <!-- Secondary brand color. -->
         <item name="colorSecondary">#4F46E5</item>
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#FFFFFF</item>
-        <item name="android:navigationBarColor">#FFFFFF</item>
         <item name="colorSecondaryVariant">#4338CA</item>
         <item name="colorOnSecondary">@color/black</item>
+        <!--
+          targetSdk 36 起系统强制 edge-to-edge，statusBarColor 不再生效。
+          系统栏保持透明，由界面自行按 window inset 让出刘海和手势区，
+          内容背景直接延伸到屏幕边缘。
+        -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>

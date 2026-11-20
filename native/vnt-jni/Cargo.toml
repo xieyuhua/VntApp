@@ -1,0 +1,27 @@
+[package]
+name = "vnt-jni"
+version = "1.2.16"
+edition = "2021"
+
+[lib]
+name = "vnt_jni"
+crate-type = ["cdylib"]
+
+[dependencies]
+vnt = { path = "../vnt", default-features = false, features = [
+    "server_encrypt",
+    "aes_gcm",
+    "integrated_tun",
+    # Compressor::from_str 在未启用任何压缩 feature 时会无条件报错，
+    # 连 "none" 都无法解析，因此必须至少启用一种压缩算法。
+    "lz4_compress",
+    # 与服务端/其他客户端互操作需要覆盖常用加密算法。
+    "chacha20_poly1305",
+    "aes_cbc",
+    "aes_ecb",
+] }
+jni = "0.21"
+serde_json = "1"
+log = "0.4"
+# 把 Rust 侧日志输出到 Android logcat，否则核心的诊断信息全部丢失。
+android_logger = "0.14"
